@@ -1,0 +1,72 @@
+
+{{ block title }}
+{{ endblock }}
+
+{{ block scripts }}
+
+<script src="{% static 'chat/chat.js' %}"></script>
+
+{{ endblock }}
+
+
+{{ block styles }}
+
+    <link rel="stylesheet" href="{% static 'chat/chat.css' %}"/>
+
+{{ endblock }}
+
+
+{{ block content }}
+
+  <!-- Information card -->
+  <div id="info" class="card text-white bg-secondary mb-4">
+    <div class="card-body">
+      <b>Instructions</b>
+      <ul class="mb-0">
+        <li>This is where some instructions could go.</li>
+        <li>Optional, can be deleted.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Chat window -->
+  <div id="chatWindow" class="card border-secondary h-100 d-flex flex-column">
+      
+    <!-- Chat Messages -->
+    <div id="scrollingWindow" class="flex-grow-1">
+      <div class="card-body">
+          <div id="chatMessages"></div>
+      </div>
+    </div>
+
+    <!-- Input Area -->
+    <div class="card-footer">
+      <div class="input-group">
+          <div class="position-relative flex-grow-1">
+            <textarea 
+              class="form-control" 
+              id="chatInput" 
+              placeholder="Enter your message..."
+              rows="2" 
+              style="resize: none;" 
+              maxlength= "{{ MAX_CHARACTERS }}"
+              autofocus
+            ></textarea>
+          <span class="position-absolute badge rounded-pill bg-danger visually-hidden" 
+                id="exceedingCharacterLimit" 
+                style="top: -10px; right: 20px;">
+          </span>
+        </div>
+        <button class="btn btn-primary" type="button" id="sendButton">Send</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="margin-bottom: 30px;"></div>
+
+  <button class="btn btn-primary btn-large" id="continueButton">
+      Continue
+  </button>
+     
+{{ endblock }}

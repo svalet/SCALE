@@ -1,0 +1,68 @@
+/* ======================================================================
+General 
+========================================================================= */
+
+/* Hide oTree title */
+.otree-title {
+  display: none;
+}
+
+/* ======================================================================
+Chat 
+========================================================================= */
+
+#scrollingWindow {
+  height: 40vh;
+  /* width: 80vh; */
+  overflow-y: auto;
+}
+
+.message-wrapper {
+  display: flex;
+  width: 100%; /* Full width for alignment */
+  margin-bottom: 1rem; /* Space between messages */
+}
+
+.message-wrapper.assistant {
+    justify-content: flex-start;
+}
+
+.message-wrapper.status {
+    justify-content: center;
+    text-align: center;
+    width: 100%;
+}
+
+.message-wrapper.user {
+    justify-content: flex-end;
+}
+
+.message {
+    padding: 0.75rem;
+    border-radius: 0.75rem;
+    max-width: 80%;
+}
+
+.message.assistant {
+    background-color: #e0e0e0;
+}
+
+.message.user {
+    text-align: right;
+    background-color: #d1e7dd;
+}
+
+.message.error {
+    background-color: #f8d7da;
+    color: #dc3545;
+}
+
+/* Undo otree form max-width overwrite */
+.input-group,
+input.form-control,
+select.form-control {
+    max-width: none;
+}
+.input-group-narrow {
+    max-width: none;
+}

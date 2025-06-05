@@ -1,0 +1,67 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: serverless-scale-chat
+
+Globals:
+  Function:
+    Timeout: 60
+    MemorySize: 256
+    Runtime: python3.12
+    LoggingConfig:
+      LogFormat: JSON
+      SystemLogLevel: WARN
+      ApplicationLogLevel: INFO
+    Architectures:
+      - x86_64
+
+Resources:
+  ChatApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      MethodSettings:
+        - ResourcePath: "/*"
+          HttpMethod: "*"
+          ThrottlingBurstLimit: 50  # Handle 25 simultaneous chats + headroom
+          ThrottlingRateLimit: 15 # Sustained requests per second
+
+  ChatFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: app/
+      Handler: lambda.handler
+      Policies:
+        - AmazonDynamoDBFullAccess
+      Events:
+        Chat:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ChatApi
+            Path: /
+            Method: ANY
+      Environment:
+        Variables:
+          DYNAMODB_TABLE: !Ref TableName
+          OPENAI_API_KEY: !Ref OpenAIApiKey
+          ALLOWED_PROD_ORIGIN: !Ref AllowedOrigin
+
+Parameters:
+  TableName:
+    Description: Name of DynamoDB table to store chat sessions
+    Type: String
+    Default: scale_chats
+  
+  OpenAIApiKey:
+    Description: Your OpenAI API key
+    Type: String
+    NoEcho: true
+
+  AllowedOrigin:
+    Description: The allowed origin for CORS (e.g., your production domain, or * for all)
+    Type: String
+    Default: "*"
+
+Outputs:
+  ChatApi:
+    Description: API Gateway endpoint URL for the chat function
+    Value: !Sub "https://${ChatApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
