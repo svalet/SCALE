@@ -42,7 +42,7 @@ The participant’s browser sends API requests to Lambda for LLM interactions, o
 - [Chopra et al. (2023)](https://arxiv.org/abs/2309.06419) use Qualtrics for LLM interviews.
 - [McKenna (2023)](https://github.com/clintmckenna/oTree_gpt) integrates LLMs directly into the oTree back-end.
 
-Our approach is modular and more scalable — compatible with many platforms beyond oTree.
+Our approach is modular and more scalable, and is compatible with other platforms beyond oTree.
 
 ## Setup
 
