@@ -1,0 +1,44 @@
+#scrollingWindow {
+    height: 40vh;
+    overflow-y: auto;
+}
+
+.message-wrapper {
+    display: flex;
+    width: 100%;
+    margin-bottom: 1rem;
+}
+
+.message-wrapper.assistant {
+    justify-content: flex-start;
+}
+
+.message-wrapper.status {
+    justify-content: center;
+    text-align: center;
+    width: 100%;
+}
+
+.message-wrapper.user {
+    justify-content: flex-end;
+}
+
+.message {
+    padding: 0.75rem;
+    border-radius: 0.75rem;
+    max-width: 80%;
+}
+
+.message.assistant {
+    background-color: #e0e0e0;
+}
+
+.message.user {
+    text-align: right;
+    background-color: #d1e7dd;
+}
+
+.message.error {
+    background-color: #f8d7da;
+    color: #dc3545;
+}
