@@ -15,6 +15,7 @@ const CONFIG = {
 
 const urlParams = new URLSearchParams(window.location.search);
 const YOUGOV_ID = urlParams.get('participant_label') || urlParams.get('uid') || '';
+const OPINION = urlParams.get('opinion') || '';
 const CHAT_ID = YOUGOV_ID || 'anonymous-' + Math.random().toString(36).slice(2, 10);
 const USER_ID = CHAT_ID;
 
@@ -118,6 +119,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 chat_id: CHAT_ID,
                 user_id: USER_ID,
                 yougov_id: YOUGOV_ID,
+                opinion: OPINION,
                 use_server_treatment: true
             }
         }),
