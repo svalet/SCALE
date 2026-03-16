@@ -4,7 +4,7 @@
 
 const CONFIG = {
     API_ENDPOINT: "https://okvf45wab3.execute-api.eu-central-1.amazonaws.com/Prod/",
-    API_SECRET: "CHANGE_ME_TO_A_REAL_SECRET",
+    API_SECRET: "tomatoe-ruffle-shoe-slip",
     MAX_MESSAGES: 50,
     MAX_CHARACTERS: 500,
 };
