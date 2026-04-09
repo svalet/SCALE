@@ -41,6 +41,39 @@ chatInput.setAttribute("maxlength", CONFIG.MAX_CHARACTERS);
 
 const typingIndicator = document.getElementById("typingIndicator");
 
+let typingDotsAnimFrame = null;
+
+function stopTypingDotsAnimation() {
+  if (typingDotsAnimFrame !== null) {
+    cancelAnimationFrame(typingDotsAnimFrame);
+    typingDotsAnimFrame = null;
+  }
+  typingIndicator.querySelectorAll(".typing-bubble-dot").forEach((dot) => {
+    dot.style.transform = "";
+    dot.style.opacity = "";
+  });
+}
+
+function typingDotsTick(now) {
+  if (!typingIndicator.classList.contains("is-active")) {
+    typingDotsAnimFrame = null;
+    return;
+  }
+  typingDotsAnimFrame = requestAnimationFrame(typingDotsTick);
+  const t = now / 1000;
+  typingIndicator.querySelectorAll(".typing-bubble-dot").forEach((dot, i) => {
+    const phase = t * Math.PI * 2 * 1.15 + i * 0.9;
+    const lift = Math.max(0, Math.sin(phase));
+    dot.style.transform = `translateY(${-8 * lift}px)`;
+    dot.style.opacity = String(0.32 + 0.68 * lift);
+  });
+}
+
+function startTypingDotsAnimation() {
+  stopTypingDotsAnimation();
+  typingDotsAnimFrame = requestAnimationFrame(typingDotsTick);
+}
+
 //---------------------------------------------------------------------------
 // HELPER FUNCTIONS
 //---------------------------------------------------------------------------
@@ -56,7 +89,9 @@ function setInputState(state) {
   if (showTyping) {
     typingIndicator.classList.add("is-active");
     typingIndicator.setAttribute("aria-hidden", "false");
+    startTypingDotsAnimation();
   } else {
+    stopTypingDotsAnimation();
     typingIndicator.classList.remove("is-active");
     typingIndicator.setAttribute("aria-hidden", "true");
   }
