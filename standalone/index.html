@@ -33,7 +33,7 @@
             <!-- Input Area -->
             <div class="card-footer">
                 <div class="input-group">
-                    <div class="position-relative flex-grow-1">
+                    <div class="position-relative flex-grow-1 chat-input-wrap" id="chatInputWrap">
                         <textarea
                             class="form-control"
                             id="chatInput"
@@ -42,6 +42,14 @@
                             style="resize: none;"
                             autofocus
                         ></textarea>
+                        <div
+                            id="typingInputOverlay"
+                            class="typing-input-overlay"
+                            aria-hidden="true"
+                            role="status"
+                        >
+                            <span class="typing-dots" aria-label="Assistent antwortet"></span>
+                        </div>
                     </div>
                     <button class="btn btn-primary" type="button" id="sendButton">Senden</button>
                 </div>

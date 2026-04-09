@@ -39,18 +39,30 @@ let userMsgCount = 0;
 
 chatInput.setAttribute("maxlength", CONFIG.MAX_CHARACTERS);
 
+const typingInputOverlay = document.getElementById("typingInputOverlay");
+
 //---------------------------------------------------------------------------
 // HELPER FUNCTIONS
 //---------------------------------------------------------------------------
 
-function toggleChatInput(show = true) {
-  if (show) {
-    chatInput.disabled = false;
-    sendButton.disabled = false;
-    chatInput.focus();
+/** @param {"idle" | "waiting_ai" | "locked"} state */
+function setInputState(state) {
+  const enabled = state === "idle";
+  const showTyping = state === "waiting_ai";
+
+  chatInput.disabled = !enabled;
+  sendButton.disabled = !enabled;
+
+  if (showTyping) {
+    typingInputOverlay.classList.add("is-visible");
+    typingInputOverlay.setAttribute("aria-hidden", "false");
   } else {
-    chatInput.disabled = true;
-    sendButton.disabled = true;
+    typingInputOverlay.classList.remove("is-visible");
+    typingInputOverlay.setAttribute("aria-hidden", "true");
+  }
+
+  if (enabled) {
+    chatInput.focus();
   }
 }
 
@@ -118,6 +130,8 @@ function appendStatusMessage(message) {
 //---------------------------------------------------------------------------
 
 document.addEventListener("DOMContentLoaded", function () {
+  setInputState("waiting_ai");
+
   jQuery.ajax({
     url: CONFIG.API_ENDPOINT,
     timeout: 60000,
@@ -136,15 +150,21 @@ document.addEventListener("DOMContentLoaded", function () {
     contentType: "application/json",
     dataType: "json",
     success: function (data) {
+      let hitMax = false;
       data.messages.forEach((message) => {
         appendChatMessage(message.role, message.content);
         if (userMsgCount > CONFIG.MAX_MESSAGES) {
-          appendStatusMessage(
-            "Maximale Anzahl an Nachrichten erreicht. Vielen Dank für Ihre Teilnahme!",
-          );
-          toggleChatInput(false);
+          hitMax = true;
         }
       });
+      if (hitMax) {
+        appendStatusMessage(
+          "Maximale Anzahl an Nachrichten erreicht. Vielen Dank für Ihre Teilnahme!",
+        );
+        setInputState("locked");
+      } else {
+        setInputState("idle");
+      }
     },
     error: function (jqXHR, textStatus, errorThrown) {
       console.error("Error details:", {
@@ -157,6 +177,7 @@ document.addEventListener("DOMContentLoaded", function () {
       appendStatusMessage(
         "Es gab einen technischen Fehler. Bitte laden Sie die Seite neu.",
       );
+      setInputState("idle");
     },
   });
 });
@@ -179,9 +200,9 @@ chatInput.addEventListener("keydown", function (event) {
 function sendMessage() {
   var messageText = chatInput.value.trim();
 
-  if (messageText) {
+  if (messageText && !chatInput.disabled) {
     chatInput.value = "";
-    toggleChatInput(false);
+    setInputState("waiting_ai");
     appendChatMessage("user", messageText);
 
     jQuery.ajax({
@@ -207,8 +228,9 @@ function sendMessage() {
           appendStatusMessage(
             "Maximale Anzahl an Nachrichten erreicht. Vielen Dank für Ihre Teilnahme!",
           );
+          setInputState("locked");
         } else {
-          toggleChatInput(true);
+          setInputState("idle");
         }
       },
       error: function (jqXHR, textStatus, errorThrown) {
@@ -222,7 +244,7 @@ function sendMessage() {
         appendStatusMessage(
           "Es gab einen technischen Fehler. Bitte versuchen Sie es erneut.",
         );
-        toggleChatInput(true);
+        setInputState("idle");
       },
     });
   }
