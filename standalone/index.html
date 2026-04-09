@@ -27,13 +27,30 @@
             <div id="scrollingWindow" class="flex-grow-1">
                 <div class="card-body">
                     <div id="chatMessages"></div>
+                    <div
+                        id="typingIndicator"
+                        class="typing-indicator-row"
+                        aria-live="polite"
+                        aria-hidden="true"
+                    >
+                        <div class="message-wrapper assistant">
+                            <div
+                                class="message assistant typing-indicator-bubble"
+                                role="status"
+                            >
+                                <span class="typing-bubble-dot"></span>
+                                <span class="typing-bubble-dot"></span>
+                                <span class="typing-bubble-dot"></span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <!-- Input Area -->
             <div class="card-footer">
                 <div class="input-group">
-                    <div class="position-relative flex-grow-1 chat-input-wrap" id="chatInputWrap">
+                    <div class="flex-grow-1">
                         <textarea
                             class="form-control"
                             id="chatInput"
@@ -42,18 +59,6 @@
                             style="resize: none;"
                             autofocus
                         ></textarea>
-                        <div
-                            id="typingInputOverlay"
-                            class="typing-input-overlay"
-                            aria-hidden="true"
-                            role="status"
-                        >
-                            <span class="typing-dots" aria-label="Assistent antwortet">
-                                <span class="typing-dot"></span>
-                                <span class="typing-dot"></span>
-                                <span class="typing-dot"></span>
-                            </span>
-                        </div>
                     </div>
                     <button class="btn btn-primary" type="button" id="sendButton">Senden</button>
                 </div>

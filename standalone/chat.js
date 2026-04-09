@@ -39,8 +39,7 @@ let userMsgCount = 0;
 
 chatInput.setAttribute("maxlength", CONFIG.MAX_CHARACTERS);
 
-const typingInputOverlay = document.getElementById("typingInputOverlay");
-const chatInputWrap = document.getElementById("chatInputWrap");
+const typingIndicator = document.getElementById("typingIndicator");
 
 //---------------------------------------------------------------------------
 // HELPER FUNCTIONS
@@ -55,29 +54,26 @@ function setInputState(state) {
   sendButton.disabled = !enabled;
 
   if (showTyping) {
-    chatInputWrap.classList.add("is-waiting");
-    typingInputOverlay.classList.add("is-visible");
-    typingInputOverlay.setAttribute("aria-hidden", "false");
+    typingIndicator.classList.add("is-active");
+    typingIndicator.setAttribute("aria-hidden", "false");
   } else {
-    chatInputWrap.classList.remove("is-waiting");
-    typingInputOverlay.classList.remove("is-visible");
-    typingInputOverlay.setAttribute("aria-hidden", "true");
+    typingIndicator.classList.remove("is-active");
+    typingIndicator.setAttribute("aria-hidden", "true");
   }
 
   if (enabled) {
     chatInput.focus();
   }
+
+  if (showTyping) {
+    scrollToBottom();
+  }
 }
 
 function scrollToBottom() {
-  var lastElement = scrollingWindow.lastElementChild;
-  if (lastElement) {
-    lastElement.scrollIntoView({
-      behavior: "smooth",
-      block: "end",
-      inline: "start",
-    });
-  }
+  requestAnimationFrame(() => {
+    scrollingWindow.scrollTop = scrollingWindow.scrollHeight;
+  });
 }
 
 ["copy", "cut", "paste"].forEach((eventType) => {
