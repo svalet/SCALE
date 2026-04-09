@@ -40,6 +40,7 @@ let userMsgCount = 0;
 chatInput.setAttribute("maxlength", CONFIG.MAX_CHARACTERS);
 
 const typingInputOverlay = document.getElementById("typingInputOverlay");
+const chatInputWrap = document.getElementById("chatInputWrap");
 
 //---------------------------------------------------------------------------
 // HELPER FUNCTIONS
@@ -54,9 +55,11 @@ function setInputState(state) {
   sendButton.disabled = !enabled;
 
   if (showTyping) {
+    chatInputWrap.classList.add("is-waiting");
     typingInputOverlay.classList.add("is-visible");
     typingInputOverlay.setAttribute("aria-hidden", "false");
   } else {
+    chatInputWrap.classList.remove("is-waiting");
     typingInputOverlay.classList.remove("is-visible");
     typingInputOverlay.setAttribute("aria-hidden", "true");
   }
