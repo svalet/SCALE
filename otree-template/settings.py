@@ -5,7 +5,7 @@ SESSION_CONFIGS = [
          name='Chatbot',
          display_name="Chatbot",
          app_sequence=['chat'],
-         num_demo_participants=1,
+         num_demo_participants=20,
      ),
 ]
 
@@ -18,7 +18,7 @@ SESSION_CONFIG_DEFAULTS = dict(
     real_world_currency_per_point=1.00, participation_fee=0.00, doc=""
 )
 
-PARTICIPANT_FIELDS = []
+PARTICIPANT_FIELDS = ['yougov_id', 'treatment']
 SESSION_FIELDS = []
 
 # ISO-639 code

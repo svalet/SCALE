@@ -1,5 +1,6 @@
 from otree.api import *
 from os import environ
+import random
 
 
 author = "Sebastian Valet & Johannes D. Walter"
@@ -20,12 +21,13 @@ class C(BaseConstants):
     PLAYERS_PER_GROUP = None
     NUM_ROUNDS = 2
 
-    MAX_MESSAGES = 10 # Maximum number of user messages
+    MAX_MESSAGES = 50 # Maximum number of user messages
     MAX_CHARACTERS = 500 # Maximum number of characters per message
     SAVE_CHAT_HISTORY = True # Whether to save the chat history in oTree
     
     # API endpoint of AWS edge function; define as environment variable
-    API_ENDPOINT = environ.get("AWS_LAMBDA_API_ENDPOINT")
+    # API_ENDPOINT = environ.get("AWS_LAMBDA_API_ENDPOINT")
+    API_ENDPOINT = "https://okvf45wab3.execute-api.eu-central-1.amazonaws.com/Prod/"
 
 
 class Subsession(BaseSubsession):
@@ -38,9 +40,10 @@ class Group(BaseGroup):
 
 class Player(BasePlayer):
     
-    # If C.SAVE_CHAT_HISTORY is True, make a player attribute for the chat history
+    yougov_id = models.StringField(blank=True)
+    treatment = models.StringField(blank=True)
+
     if C.SAVE_CHAT_HISTORY:
-        # Chat history
         chat_history = models.LongStringField()
 
 
@@ -52,6 +55,11 @@ class chat(Page):
 
     @staticmethod
     def vars_for_template(player):
+        if player.round_number == 1:
+            player.participant.yougov_id = player.participant.label or ''
+            player.participant.treatment = random.choice(['control', 'treatment'])
+        player.yougov_id = player.participant.yougov_id
+        player.treatment = player.participant.treatment
         return dict(MAX_CHARACTERS=C.MAX_CHARACTERS)
 
     @staticmethod
@@ -69,12 +77,45 @@ class chat(Page):
     
     @staticmethod
     def get_system_prompt(player):
-        # Generate system prompt. Could include player specific information.
-        # For example f"You are playing for {player.payoff}."
-        # Set it None if you don't want it.
-        system_prompt = """
-            Be a helpful assistant. Be brief, concise and use simple language.
-        """.strip()
+        style_instructions = (
+            "Antworte immer auf Deutsch. "
+            "Verwende einfache, klare Sprache. Halte dich kurz (2-4 Sätze pro Antwort). "
+            "Sei freundlich und respektvoll. Lüge nicht und erfinde keine Fakten. "
+            "Stelle Fragen, um das Gespräch am Laufen zu halten. "
+            "Beziehe dich auf das, was dein Gesprächspartner gesagt hat."
+        )
+
+        if player.participant.treatment == 'treatment':
+            system_prompt = (
+                "Du bist ein Gesprächsbot zum Thema Einwanderung nach Deutschland. "
+                "Dein Ziel ist es, deinen Gesprächspartner zu einer moderateren "
+                "Position zu bewegen — egal ob die Person eher für oder gegen "
+                "Einwanderung ist. Wenn die Person sehr gegen Einwanderung ist, "
+                "bringe die stärksten Argumente für die Vorteile von Einwanderung "
+                "(z.B. Fachkräftemangel, demographischer Wandel, wirtschaftliche "
+                "Beiträge, kulturelle Bereicherung). Wenn die Person sehr für "
+                "offene Grenzen ist, bringe die stärksten Argumente für eine "
+                "regulierte Einwanderung (z.B. Integrationskapazitäten, "
+                "Belastung von Kommunen, gesellschaftlicher Zusammenhalt). "
+                "Sei dabei immer fair und ehrlich. Erkenne berechtigte Sorgen "
+                "deines Gesprächspartners an, bevor du Gegenargumente bringst. "
+                "Beginne das Gespräch, indem du fragst, was dein Gesprächspartner "
+                "über Einwanderung nach Deutschland denkt. "
+                + style_instructions
+            )
+        else:
+            system_prompt = (
+                "Du bist ein Gesprächsbot zum Thema Wetter und Klima in Deutschland. "
+                "Unterhalte dich mit deinem Gesprächspartner über Wetterthemen — "
+                "zum Beispiel Lieblingsjahreszeiten, Wetterextreme, regionale "
+                "Wetterunterschiede in Deutschland, Urlaubswetter, oder wie das "
+                "Wetter den Alltag beeinflusst. Sei neugierig und stelle Fragen. "
+                "Teile interessante Fakten über das Wetter, wenn es passt. "
+                "Vermeide politische Themen, insbesondere Einwanderung. "
+                "Beginne das Gespräch, indem du fragst, wie das Wetter gerade "
+                "bei deinem Gesprächspartner ist. "
+                + style_instructions
+            )
         return system_prompt
 
     @staticmethod

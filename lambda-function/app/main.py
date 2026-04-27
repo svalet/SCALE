@@ -1,6 +1,7 @@
 import time
 import os
 import logging
+import random
 import boto3
 from datetime import datetime
 from typing import Dict, List, Any, Optional, Union, Tuple
@@ -29,10 +30,132 @@ OpenAIMessage = Dict[str, str]
 MAX_MESSAGES_PER_CHAT = 100
 MAX_CHATS_PER_USER = 20
 
+STYLE_INSTRUCTIONS = (
+    "Antworte in der Sprache, die dein Gesprächspartner benutzt. "
+    "Wenn dein Gesprächspartner Deutsch schreibt, antworte auf Deutsch. "
+    "Wenn dein Gesprächspartner Englisch oder eine andere Sprache schreibt, "
+    "antworte in dieser Sprache. Das Thema bleibt aber immer Einwanderung "
+    "nach Deutschland bzw. Wetter in Deutschland. "
+    "Verwende einfache, klare Sprache. Antworte in 4-6 Sätzen pro Nachricht. "
+    "Sei freundlich und respektvoll. Lüge nicht und erfinde keine Fakten. "
+    "Stelle am Ende deiner Antwort eine Frage, um das Gespräch am Laufen zu halten. "
+    "Beziehe dich auf das, was dein Gesprächspartner gesagt hat."
+)
+
+OPINION_SCALE = {
+    '1': 'stark gegen Einwanderung (will keine Einwanderer)',
+    '2': 'deutlich gegen Einwanderung',
+    '3': 'eher gegen Einwanderung',
+    '4': 'neutral / unentschieden',
+    '5': 'eher für Einwanderung',
+    '6': 'deutlich für Einwanderung',
+    '7': 'stark für offene Grenzen (will so viele Einwanderer wie möglich)',
+}
+
+CONTROL_PROMPT = (
+    "Du bist ein Gesprächsbot zum Thema Wetter, Klima und Jahreszeiten "
+    "in Deutschland. Führe ein persönliches, lebhaftes Gespräch. "
+    "Mögliche Themen: Wie das Wetter die Stimmung und den Alltag beeinflusst, "
+    "Erinnerungen an besondere Wetterereignisse (z.B. Hitzesommer, Schneechaos, "
+    "Unwetter), Lieblingsjahreszeiten und warum, Outdoor-Aktivitäten und Hobbys "
+    "die vom Wetter abhängen, Urlaubserlebnisse mit besonderem Wetter, "
+    "wie sich das Wetter in Deutschland über die Jahre verändert hat, "
+    "und regionale Wetterunterschiede (Küste vs. Berge vs. Flachland). "
+    "Teile eigene Beobachtungen und interessante Fakten, um das Gespräch "
+    "lebendig zu machen. Verknüpfe Wetterthemen mit dem persönlichen "
+    "Erleben deines Gesprächspartners. "
+    "Vermeide politische Themen, insbesondere Einwanderung. "
+    "Beginne das Gespräch auf Deutsch, indem du fragst, wie das Wetter gerade "
+    "bei deinem Gesprächspartner ist und ob er oder sie eine "
+    "Lieblingsjahreszeit hat. "
+    + STYLE_INSTRUCTIONS
+)
+
+
+def get_treatment_prompt(opinion: Optional[str] = None) -> str:
+    base = (
+        "Du bist ein überzeugender Gesprächsbot zum Thema Einwanderung nach "
+        "Deutschland. Dein Ziel ist es, deinen Gesprächspartner davon zu "
+        "überzeugen, dass eine ausgewogene, differenzierte Haltung zur "
+        "Einwanderung die vernünftigste Position ist. Weder extreme Ablehnung "
+        "noch bedingungslose Offenheit sind realistisch oder wünschenswert. "
+        "Sei dabei hartnäckig und überzeugend — gib dich nicht mit "
+        "oberflächlichen Antworten zufrieden, sondern hake nach und "
+        "konfrontiere deinen Gesprächspartner mit starken Gegenargumenten. "
+    )
+
+    opinion_label = OPINION_SCALE.get(opinion, '') if opinion else ''
+
+    if opinion and opinion_label:
+        base += (
+            f"Dein Gesprächspartner hat vorab angegeben, dass er/sie "
+            f"'{opinion_label}' ist (Wert {opinion} auf einer 7er-Skala). "
+            f"Erwähne diese Skala oder diesen Wert nicht im Gespräch. "
+        )
+
+        opinion_int = int(opinion)
+        if opinion_int <= 2:
+            base += (
+                "Diese Person ist stark gegen Einwanderung. Sei direkt und "
+                "konfrontativ (aber respektvoll). Nutze die stärksten "
+                "verfügbaren Argumente FÜR Einwanderung. "
+                "Zeige auf, dass die Ängste zwar verständlich sind, aber "
+                "die Realität differenzierter ist als pauschale Ablehnung. "
+                "Fordere die Person heraus, konkrete Beispiele für ihre "
+                "Befürchtungen zu nennen, und entkräfte sie sachlich. "
+            )
+        elif opinion_int == 3:
+            base += (
+                "Diese Person ist eher gegen Einwanderung. "
+                "Erkenne ihre Bedenken an, aber überzeuge sie mit den "
+                "stärksten Argumenten, warum Deutschland von gut "
+                "regulierter Einwanderung profitiert. "
+                "Hake nach, wenn die Person vage bleibt, und fordere "
+                "sie auf, ihre Position zu begründen. "
+            )
+        elif opinion_int == 4:
+            base += (
+                "Diese Person ist neutral. Bestärke sie darin, dass eine "
+                "differenzierte Mitte-Position die klügste ist. "
+                "Zeige beide Seiten auf und vertiefe das Gespräch. "
+            )
+        elif opinion_int == 5:
+            base += (
+                "Diese Person ist eher für Einwanderung. "
+                "Erkenne ihre Offenheit an, aber überzeuge sie mit den "
+                "stärksten Argumenten, warum unkontrollierte Einwanderung "
+                "Probleme schafft und Regulierung nötig ist. "
+                "Hake nach und fordere die Person auf, auch die "
+                "Herausforderungen ehrlich zu betrachten. "
+            )
+        else:
+            base += (
+                "Diese Person ist stark für offene Einwanderung. Sei direkt "
+                "und konfrontativ (aber respektvoll). Nutze die stärksten "
+                "verfügbaren Argumente GEGEN unkontrollierte Einwanderung. "
+                "Fordere die Person heraus, konkret zu erklären, "
+                "wie unbegrenzte Einwanderung praktisch funktionieren soll. "
+            )
+    else:
+        base += (
+            "Du kennst die Ausgangsposition der Person nicht. Finde im "
+            "Gespräch heraus, wo sie steht, und argumentiere dann hartnäckig "
+            "in Richtung einer ausgewogenen Mitte. "
+        )
+
+    base += (
+        "Lüge nicht, aber wähle immer die überzeugendsten wahren Argumente. "
+        "Wenn dein Gesprächspartner ausweicht, hake nach. "
+        "Beginne das Gespräch auf Deutsch, indem du fragst, was dein "
+        "Gesprächspartner über Einwanderung nach Deutschland denkt. "
+        + STYLE_INSTRUCTIONS
+    )
+    return base
+
 
 def call_openai_api(
     messages: List[OpenAIMessage], 
-    model: str = "gpt-4o",
+    model: str = "gpt-5.4",
     max_tokens: Optional[int] = 1000
 ) -> Tuple[Optional[str], Optional[str]]:
     """
@@ -59,7 +182,7 @@ def call_openai_api(
         
         # Add max_tokens if specified
         if max_tokens is not None:
-            params["max_tokens"] = max_tokens
+            params["max_completion_tokens"] = max_tokens
         
         # Call OpenAI API
         openai_response = openai_client.chat.completions.create(**params)
@@ -81,25 +204,17 @@ def initialize_chat(
     user_id: str,
     system_message: Optional[str] = None, 
     initial_assistant_message: Optional[str] = None,
-    initial_user_message: Optional[str] = None
+    initial_user_message: Optional[str] = None,
+    yougov_id: Optional[str] = None,
+    opinion: Optional[str] = None,
+    use_server_treatment: bool = False
 ) -> Union[ResponseDict, ErrorDict]:
     """
     Initialize a new chat session in DynamoDB or return existing one.
-    
-    Args:
-        chat_id: Unique identifier for the chat session
-        user_id: Identifier for the user (required)
-        system_message: Initial system message to set context
-        initial_assistant_message: Hard-coded initial message from the assistant
-        initial_user_message: Initial user message that will trigger an API call to get an assistant response
-    
-    Returns:
-        Dictionary containing:
-            - chat_id: The chat identifier
-            - user_id: The user identifier
-            - is_new: Boolean indicating if this is a new session
-            - messages: List of chat messages in the session (excluding system messages)
-        Or an error dictionary if something goes wrong
+
+    When use_server_treatment is True, the server randomly assigns a treatment
+    and selects the system prompt from TREATMENT_PROMPTS. The system_message
+    parameter is ignored in this case.
     """
     # Check if chat already exists
     existing_chat = table.get_item(Key={'chat_id': chat_id})
@@ -108,19 +223,18 @@ def initialize_chat(
         logger.info(f"Retrieved existing chat: {chat_id} for user: {user_id}")
         stored_user_id = existing_chat['Item'].get('user_id')
         
-        # Verify user_id matches
         if stored_user_id and stored_user_id != user_id:
             logger.warning(f"User ID mismatch: provided {user_id}, stored {stored_user_id}")
             return {'error': 'User ID mismatch'}
         
-        # Get all messages excluding system messages
         all_messages = existing_chat['Item'].get('messages', [])
         visible_messages = [msg for msg in all_messages if msg.get('role') != 'system']
         
         return {
             'chat_id': chat_id,
-            'user_id': stored_user_id or user_id,  # Use stored if available, otherwise use provided
+            'user_id': stored_user_id or user_id,
             'is_new': False,
+            'treatment': existing_chat['Item'].get('treatment', ''),
             'messages': visible_messages
         }
 
@@ -134,10 +248,18 @@ def initialize_chat(
     if MAX_CHATS_PER_USER and user_chat_count >= MAX_CHATS_PER_USER:
         return {'error': f'Maximum number of chats ({MAX_CHATS_PER_USER}) reached for this user.'}
     
-    # If not, create a new chat
+    # Server-side treatment randomization
+    treatment = ''
+    if use_server_treatment:
+        treatment = random.choice(['control', 'treatment'])
+        if treatment == 'treatment':
+            system_message = get_treatment_prompt(opinion)
+        else:
+            system_message = CONTROL_PROMPT
+        logger.info(f"Assigned treatment '{treatment}' for chat: {chat_id}")
+
     timestamp = datetime.now().isoformat()
     
-    # Create initial messages list with optional system message
     messages: ChatHistory = []
     if system_message:
         messages.append({
@@ -146,9 +268,6 @@ def initialize_chat(
             'timestamp': timestamp
         })
     
-    # Add initial assistant message if provided
-    # This is for cases when you want to show an initial hard coded assistant
-    # message at the beginning of the chat
     if initial_assistant_message:
         messages.append({
             'role': 'assistant',
@@ -156,19 +275,14 @@ def initialize_chat(
             'timestamp': timestamp
         })
     
-    # Process initial user message if provided
-    # This is for cases when you want to have an initial user message such that
-    # you get a personalized initial assistant message is generated.
     assistant_response = None
     if initial_user_message:
-        # Add the user message to the history
         messages.append({
             'role': 'user',
             'content': initial_user_message,
             'timestamp': timestamp
         })
         
-        # Get assistant response via API call
         openai_messages = [
             {'role': msg['role'], 'content': msg['content']} for msg in messages
         ]
@@ -177,7 +291,6 @@ def initialize_chat(
         if error:
             return {'error': error}
         
-        # Add assistant response to history if it exists
         if assistant_response:
             messages.append({
                 'role': 'assistant',
@@ -185,7 +298,24 @@ def initialize_chat(
                 'timestamp': datetime.now().isoformat()
             })
     
-    # Prepare the item to store in DynamoDB
+    # When using server treatment and no other initial message was set,
+    # generate an AI opening message from the system prompt alone
+    if use_server_treatment and not initial_assistant_message and not initial_user_message:
+        openai_messages = [
+            {'role': msg['role'], 'content': msg['content']} for msg in messages
+        ]
+        first_message, error = call_openai_api(openai_messages)
+        
+        if error:
+            return {'error': error}
+        
+        if first_message:
+            messages.append({
+                'role': 'assistant',
+                'content': first_message,
+                'timestamp': datetime.now().isoformat()
+            })
+    
     chat_item = {
         'chat_id': chat_id,
         'user_id': user_id,
@@ -193,19 +323,24 @@ def initialize_chat(
         'created_at': timestamp,
         'updated_at': timestamp
     }
+    if treatment:
+        chat_item['treatment'] = treatment
+    if yougov_id:
+        chat_item['yougov_id'] = yougov_id
+    if opinion:
+        chat_item['opinion'] = opinion
     
-    # Write to DynamoDB
     table.put_item(Item=chat_item)
     
     logger.info(f"Initialized new chat: {chat_id} for user: {user_id}")
     
-    # Filter out system messages for the response
     visible_messages = [msg for msg in messages if msg.get('role') != 'system']
     
     return {
         'chat_id': chat_id,
         'user_id': user_id,
         'is_new': True,
+        'treatment': treatment,
         'messages': visible_messages
     }
 

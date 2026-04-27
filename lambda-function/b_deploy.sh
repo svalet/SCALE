@@ -19,9 +19,9 @@ set -e
 #############################################################################
 
 # Configuration constants
-BUCKET_NAME="scale-lambda-deployment"
-TABLE_NAME="scale_chats"
-ALLOWED_PROD_ORIGIN="https://production-origin.com"
+BUCKET_NAME="yougov-ai"
+TABLE_NAME="yougov-ai-table"
+ALLOWED_PROD_ORIGIN="https://chat-exp-e176a34d75b9.herokuapp.com"
 
 # Parse command line arguments - only for OpenAI API key
 while [[ $# -gt 0 ]]; do
@@ -30,9 +30,13 @@ while [[ $# -gt 0 ]]; do
       OPENAI_API_KEY="$2"
       shift 2
       ;;
+    --api-secret)
+      API_SECRET="$2"
+      shift 2
+      ;;
     *)
       echo "Unknown option: $1"
-      echo "Valid option: --openai-api-key <KEY>"
+      echo "Valid options: --openai-api-key <KEY> --api-secret <SECRET>"
       exit 1
       ;;
   esac
@@ -49,7 +53,13 @@ echo
 # Validate that all required parameters are provided
 if [ -z "$OPENAI_API_KEY" ]; then
     echo "Error: OpenAI API key cannot be empty!"
-    echo "Provide it with --openai-api-key <KEY> or set OPENAI_API_KEY environment variable"
+    echo "Provide it with --openai-api-key <KEY>"
+    exit 1
+fi
+
+if [ -z "$API_SECRET" ]; then
+    echo "Error: API secret cannot be empty!"
+    echo "Provide it with --api-secret <SECRET>"
     exit 1
 fi
 
@@ -63,7 +73,7 @@ fi
 # - Docker ensures compatibility with the Lambda environment
 #############################################################################
 echo "Building application including local changes..."
-sam build --use-container 
+sam build
 echo "Build step completed."
 
 #############################################################################
@@ -80,7 +90,7 @@ echo "Build step completed."
 #############################################################################
 echo "Deploying to cloud using provided S3 bucket, Dynamo table, and OpenAI API key..." 
 sam deploy \
-    --parameter-overrides TableName=$TABLE_NAME OpenAIApiKey=$OPENAI_API_KEY  AllowedOrigin=$ALLOWED_PROD_ORIGIN\
+    --parameter-overrides TableName=$TABLE_NAME OpenAIApiKey=$OPENAI_API_KEY AllowedOrigin=$ALLOWED_PROD_ORIGIN ApiSecret=$API_SECRET\
     --no-confirm-changeset \
     --no-fail-on-empty-changeset \
     --s3-bucket $BUCKET_NAME

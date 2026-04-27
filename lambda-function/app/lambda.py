@@ -97,7 +97,10 @@ def handler(event, context):
                 user_id=payload['user_id'],
                 system_message=payload.get('system_message'),
                 initial_assistant_message=payload.get('initial_assistant_message'),
-                initial_user_message=payload.get('initial_user_message')
+                initial_user_message=payload.get('initial_user_message'),
+                yougov_id=payload.get('yougov_id'),
+                opinion=payload.get('opinion'),
+                use_server_treatment=payload.get('use_server_treatment', False)
             )
 
         elif route == 'chat':

@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: serverless-scale-chat
 
@@ -22,8 +22,8 @@ Resources:
       MethodSettings:
         - ResourcePath: "/*"
           HttpMethod: "*"
-          ThrottlingBurstLimit: 50  # Handle 25 simultaneous chats + headroom
-          ThrottlingRateLimit: 15 # Sustained requests per second
+          ThrottlingBurstLimit: 500
+          ThrottlingRateLimit: 200
 
   ChatFunction:
     Type: AWS::Serverless::Function
@@ -50,7 +50,7 @@ Parameters:
     Description: Name of DynamoDB table to store chat sessions
     Type: String
     Default: scale_chats
-  
+
   OpenAIApiKey:
     Description: Your OpenAI API key
     Type: String

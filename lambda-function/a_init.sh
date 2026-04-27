@@ -19,8 +19,8 @@ set -e
 
 # Configuration constants
 AWS_REGION="eu-central-1"
-BUCKET_NAME="scale-lambda-deployment"
-TABLE_NAME="scale_chats"
+BUCKET_NAME="yougov-ai"
+TABLE_NAME="yougov-ai-table"
 
 # Action flags - set which parts of the script to run
 DO_CONFIGURE_AWS=true
